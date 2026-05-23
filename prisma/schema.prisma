@@ -1,0 +1,350 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  WALLET
+  CASH_ON_DELIVERY
+  PAYPAL
+  APPLE_PAY
+  GOOGLE_PAY
+}
+
+enum PromoDiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+}
+
+enum OrderType {
+  DELIVERY
+  PICKUP
+  DINE_IN
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  MANAGER
+  SUPPORT
+}
+
+model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  password      String
+  username      String?         @unique
+  firstName     String?
+  lastName      String?
+  phone         String?
+  avatarUrl     String?
+  emailVerified Boolean         @default(false)
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  carts         Cart[]
+  orders        Order[]
+  favorites     Favorite[]
+  reviews       Review[]
+  addresses     DeliveryAddress[]
+  payments      Payment[]
+}
+
+model Admin {
+  id         String      @id @default(uuid())
+  name       String
+  email      String      @unique
+  password   String
+  role       AdminRole   @default(MANAGER)
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  notes      String?
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Product {
+  id               String            @id @default(uuid())
+  name             String
+  slug             String            @unique
+  description      String
+  shortDescription String?
+  mainImage        String?
+  gallery          Json?
+  basePrice        Decimal
+  isPublished      Boolean           @default(true)
+  isFeatured       Boolean           @default(false)
+  isVegan          Boolean           @default(false)
+  isVegetarian     Boolean           @default(false)
+  isSpicy          Boolean           @default(false)
+  spiceLevel       Int?              @default(0)
+  calories         Int?
+  category         Category          @relation(fields: [categoryId], references: [id])
+  categoryId       String
+  variants         ProductVariant[]
+  addOns           ProductAddOn[]
+  cartItems        CartItem[]
+  orderItems       OrderItem[]
+  favorites        Favorite[]
+  reviews          Review[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model ProductVariant {
+  id          String   @id @default(uuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  name        String
+  sku         String?  @unique
+  price       Decimal
+  extraCost   Decimal  @default(0)
+  isActive    Boolean  @default(true)
+  stock       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProductAddOn {
+  id          String   @id @default(uuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  name        String
+  description String?
+  price       Decimal
+  isRequired  Boolean  @default(false)
+  maxQuantity Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Cart {
+  id           String      @id @default(uuid())
+  user         User        @relation(fields: [userId], references: [id])
+  userId       String
+  isCheckedOut Boolean     @default(false)
+  promoCode    PromoCode?  @relation(fields: [promoCodeId], references: [id])
+  promoCodeId  String?
+  subTotal     Decimal     @default(0)
+  deliveryFee  Decimal     @default(0)
+  discount     Decimal     @default(0)
+  total        Decimal     @default(0)
+  note         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  items        CartItem[]
+}
+
+model CartItem {
+  id              String           @id @default(uuid())
+  cart            Cart             @relation(fields: [cartId], references: [id])
+  cartId          String
+  product         Product          @relation(fields: [productId], references: [id])
+  productId       String
+  variant         ProductVariant?  @relation(fields: [productVariantId], references: [id])
+  productVariantId String?
+  quantity        Int              @default(1)
+  unitPrice       Decimal
+  totalPrice      Decimal
+  selectedAddOns  Json?
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Order {
+  id                String          @id @default(uuid())
+  user              User            @relation(fields: [userId], references: [id])
+  userId            String
+  status            OrderStatus     @default(PENDING)
+  type              OrderType       @default(DELIVERY)
+  promoCode         PromoCode?      @relation(fields: [promoCodeId], references: [id])
+  promoCodeId       String?
+  subTotal          Decimal
+  deliveryFee       Decimal
+  discount          Decimal
+  tax               Decimal
+  total             Decimal
+  paymentStatus     PaymentStatus   @default(PENDING)
+  trackingNumber    String?         @unique
+  customerNote      String?
+  restaurantNote    String?
+  placedAt          DateTime        @default(now())
+  confirmedAt       DateTime?
+  preparedAt        DateTime?
+  deliveredAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  items             OrderItem[]
+  payment           Payment?
+  deliveryAddress   DeliveryAddress? @relation(fields: [deliveryAddressId], references: [id])
+  deliveryAddressId String?
+}
+
+model OrderItem {
+  id              String           @id @default(uuid())
+  order           Order            @relation(fields: [orderId], references: [id])
+  orderId         String
+  product         Product          @relation(fields: [productId], references: [id])
+  productId       String
+  variant         ProductVariant?  @relation(fields: [productVariantId], references: [id])
+  productVariantId String?
+  quantity        Int              @default(1)
+  unitPrice       Decimal
+  totalPrice      Decimal
+  selectedAddOns  Json?
+  notes           String?
+  snapshotName    String
+  snapshotSlug    String
+  snapshotImage   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Payment {
+  id             String         @id @default(uuid())
+  order          Order?         @relation(fields: [orderId], references: [id])
+  orderId        String?
+  user           User?          @relation(fields: [userId], references: [id])
+  userId         String?
+  amount         Decimal
+  method         PaymentMethod  @default(CARD)
+  status         PaymentStatus  @default(PENDING)
+  provider       String?
+  transactionId  String?        @unique
+  currency       String         @default("NGN")
+  paidAt         DateTime?
+  paymentData    Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model DeliveryZone {
+  id             String            @id @default(uuid())
+  name           String
+  slug           String            @unique
+  description    String?
+  coverageArea   Json?
+  minimumOrder   Decimal           @default(0)
+  fee            Decimal           @default(0)
+  isActive       Boolean           @default(true)
+  estimatedMins  Int?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  addresses      DeliveryAddress[]
+}
+
+model DeliveryAddress {
+  id           String   @id @default(uuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  zone         DeliveryZone? @relation(fields: [zoneId], references: [id])
+  zoneId       String?
+  label        String?
+  street       String
+  city         String
+  state        String
+  postalCode   String
+  country      String   @default("Nigeria")
+  landmark     String?
+  instructions String?
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  orders       Order[]
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  product    Product  @relation(fields: [productId], references: [id])
+  productId  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, productId])
+}
+
+model Review {
+  id         String        @id @default(uuid())
+  user       User          @relation(fields: [userId], references: [id])
+  userId     String
+  product    Product       @relation(fields: [productId], references: [id])
+  productId  String
+  rating     Int           @default(5)
+  title      String?
+  comment    String
+  status     ReviewStatus  @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([userId, productId])
+}
+
+model PromoCode {
+  id             String            @id @default(uuid())
+  code           String            @unique
+  description    String?
+  discountType   PromoDiscountType @default(PERCENTAGE)
+  discountValue  Decimal
+  minOrderValue  Decimal           @default(0)
+  maxDiscount    Decimal           @default(0)
+  usageLimit     Int               @default(0)
+  usedCount      Int               @default(0)
+  startsAt       DateTime
+  endsAt         DateTime
+  isActive       Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  orders         Order[]
+  carts          Cart[]
+}
+
+model RestaurantSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
