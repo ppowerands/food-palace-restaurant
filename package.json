@@ -9,9 +9,6 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "prisma:migrate": "prisma migrate dev --name init",
-    "prisma:generate": "prisma generate",
-    "prepare": ""
   },
   "dependencies": {
     "@prisma/client": "^5.15.0",
