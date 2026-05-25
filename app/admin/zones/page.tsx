@@ -135,7 +135,7 @@ export default function ZonesPage() {
             setFormData({
               name: '',
               area: '',
-              deliveryFee: 0,
+              deliveryFee: 9000,
               deliveryTime: '',
             });
           }}
