@@ -331,11 +331,7 @@ export default function ZonesPage() {
               >
                 {zone.isActive
                   ? '⏸ Disable'
-<<<<<<< HEAD
                   : '▶️ Enable'}
-=======
-                  : '▶ Enable'}
->>>>>>> 45c7469800ddcec979e08072fc0a9ee6d946dd78
               </button>
 
               <button
