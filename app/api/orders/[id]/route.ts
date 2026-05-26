@@ -201,7 +201,7 @@ export async function PUT(
     }
 
     // Update order
-    const updateData: Prisma.OrderUpdateInput = {
+    const updateData = {
       status,
       ...(restaurantNote && { restaurantNote }),
       ...(status === 'CONFIRMED' && { confirmedAt: new Date() }),
@@ -284,7 +284,7 @@ export async function PATCH(
         id: true,
         trackingNumber: true,
         status: true,
-        orderType: true,
+        type: true,
         total: true,
         createdAt: true,
         confirmedAt: true,
